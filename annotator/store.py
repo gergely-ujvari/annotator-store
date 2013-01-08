@@ -1,4 +1,5 @@
 import json
+from jsonencoderregistry import JSONEncoderRegistry
 
 from flask import Blueprint, Response
 from flask import g
@@ -6,7 +7,10 @@ from flask import request
 from flask import url_for
 
 from annotator.atoi import atoi
-from annotator.annotation import Annotation
+
+import logging
+
+log = logging.getLogger(__name__)
 
 store = Blueprint('store', __name__)
 
@@ -16,7 +20,8 @@ UPDATE_FILTER_FIELDS = ('updated', 'created', 'user', 'consumer')
 # We define our own jsonify rather than using flask.jsonify because we wish
 # to jsonify arbitrary objects (e.g. index returns a list) rather than kwargs.
 def jsonify(obj, *args, **kwargs):
-    res = json.dumps(obj, indent=None if request.is_xhr else 2)
+    res = json.dumps(obj, cls = JSONEncoderRegistry, indent=None if request.is_xhr else 2)
+    log.info("Json: " + str(res))
     return Response(res, mimetype='application/json', *args, **kwargs)
 
 @store.before_request
@@ -97,7 +102,7 @@ def root():
 # INDEX
 @store.route('/annotations')
 def index():
-    annotations = Annotation.search()
+    annotations = g.annotation_class.search()
     return jsonify(annotations)
 
 # CREATE
@@ -108,7 +113,10 @@ def create_annotation():
         return _failed_authz_response('create annotation')
 
     if request.json is not None:
-        annotation = Annotation(_filter_input(request.json, CREATE_FILTER_FIELDS))
+        print str(_filter_input(request.json, CREATE_FILTER_FIELDS))
+        annotation = g.annotation_class(_filter_input(request.json, CREATE_FILTER_FIELDS))
+        #annotation = g.annotation_class()
+        #annotation.update(_filter_input(request.json, CREATE_FILTER_FIELDS))
 
         annotation['consumer'] = g.user.consumer.key
         if _get_annotation_user(annotation) != g.user.id:
@@ -128,7 +136,7 @@ def create_annotation():
 # READ
 @store.route('/annotations/<id>')
 def read_annotation(id):
-    annotation = Annotation.fetch(id)
+    annotation = g.annotation_class.fetch(id)
     if not annotation:
         return jsonify('Annotation not found!', status=404)
 
@@ -141,7 +149,7 @@ def read_annotation(id):
 # UPDATE
 @store.route('/annotations/<id>', methods=['POST', 'PUT'])
 def update_annotation(id):
-    annotation = Annotation.fetch(id)
+    annotation = g.annotation_class.fetch(id)
     if not annotation:
         return jsonify('Annotation not found! No update performed.', status=404)
 
@@ -171,7 +179,7 @@ def update_annotation(id):
 # DELETE
 @store.route('/annotations/<id>', methods=['DELETE'])
 def delete_annotation(id):
-    annotation = Annotation.fetch(id)
+    annotation = g.annotation_class.fetch(id)
 
     if not annotation:
         return jsonify('Annotation not found. No delete performed.', status=404)
@@ -193,8 +201,8 @@ def search_annotations():
     if 'limit' in kwargs:
         kwargs['limit'] = atoi(kwargs['limit'], 20)
 
-    results = Annotation.search(**kwargs)
-    total = Annotation.count(**kwargs)
+    results = g.annotation_class.search(**kwargs)
+    total = g.annotation_class.count(**kwargs)
     return jsonify({
         'total': total,
         'rows': results
@@ -203,7 +211,7 @@ def search_annotations():
 # RAW ES SEARCH
 @store.route('/search_raw', methods=['GET', 'POST'])
 def search_annotations_raw():
-    res = Annotation.search_raw(request)
+    res = g.annotation_class.search_raw(request)
     return jsonify(res, status=res.get('status', 200))
 
 def _filter_input(obj, fields):
