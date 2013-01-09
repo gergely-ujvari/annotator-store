@@ -21,7 +21,7 @@ UPDATE_FILTER_FIELDS = ('updated', 'created', 'user', 'consumer')
 # to jsonify arbitrary objects (e.g. index returns a list) rather than kwargs.
 def jsonify(obj, *args, **kwargs):
     res = json.dumps(obj, cls = JSONEncoderRegistry, indent=None if request.is_xhr else 2)
-    log.info("Json: " + str(res))
+    #log.info("Json: " + str(res))
     return Response(res, mimetype='application/json', *args, **kwargs)
 
 @store.before_request
@@ -113,7 +113,8 @@ def create_annotation():
         return _failed_authz_response('create annotation')
 
     if request.json is not None:
-        print str(_filter_input(request.json, CREATE_FILTER_FIELDS))
+        log.info(str(request.json))
+        log.info(str(_filter_input(request.json, CREATE_FILTER_FIELDS)))
         annotation = g.annotation_class(_filter_input(request.json, CREATE_FILTER_FIELDS))
         #annotation = g.annotation_class()
         #annotation.update(_filter_input(request.json, CREATE_FILTER_FIELDS))

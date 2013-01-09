@@ -2,9 +2,6 @@ import json
 
 '''
 '''
-import logging
-
-log = logging.getLogger(__name__)
 
 class JSONEncoderRegistry (json.JSONEncoder):
     serializers = {}
@@ -12,7 +9,6 @@ class JSONEncoderRegistry (json.JSONEncoder):
     @classmethod
     def register_json_serializer(cls, obj, method):
         cls.serializers[obj] = method
-        log.info("Register: " + str(obj) + " " + str(method))
                 
     @classmethod
     def deregiser_serializer(cls, obj):
@@ -20,7 +16,6 @@ class JSONEncoderRegistry (json.JSONEncoder):
             del cls.serializers[obj]
         
     def default(self, obj):
-        log.info("Default: " + str(obj))
         for cls, method in self.serializers.iteritems() :
             if isinstance(obj, cls) :
                 return method(obj)
