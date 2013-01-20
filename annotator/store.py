@@ -1,5 +1,5 @@
 import json
-from jsonencoderregistry import JSONEncoderRegistry
+import datetime
 
 from flask import Blueprint, Response
 from flask import g
@@ -17,10 +17,19 @@ store = Blueprint('store', __name__)
 CREATE_FILTER_FIELDS = ('updated', 'created', 'consumer')
 UPDATE_FILTER_FIELDS = ('updated', 'created', 'user', 'consumer')
 
+class SelfJSONEncoder (json.JSONEncoder):
+    def default(self, obj):
+        if isinstance(obj, datetime.datetime) :
+            return obj.isoformat()
+        if hasattr(obj, '__json__') and callable(getattr((obj, '__json__'))) :
+            return getattr(obj, '__json__')()
+        else:
+            return super(SelfJSONEncoder, self).default(obj)
+
 # We define our own jsonify rather than using flask.jsonify because we wish
 # to jsonify arbitrary objects (e.g. index returns a list) rather than kwargs.
 def jsonify(obj, *args, **kwargs):
-    res = json.dumps(obj, cls = JSONEncoderRegistry, indent=None if request.is_xhr else 2)
+    res = json.dumps(obj, cls = SelfJSONEncoder, indent=None if request.is_xhr else 2)
     return Response(res, mimetype='application/json', *args, **kwargs)
 
 @store.before_request
@@ -34,8 +43,7 @@ def before_request():
 @store.after_request
 def after_request(response):
     ac = 'Access-Control-'
-
-    response.headers[ac + 'Allow-Origin']      = request.headers.get('origin', '*')
+    response.headers.get('origin', '*')
     response.headers[ac + 'Expose-Headers']    = 'Content-Length, Content-Type, Location'
 
     if request.method == 'OPTIONS':
