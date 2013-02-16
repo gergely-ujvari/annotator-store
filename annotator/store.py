@@ -21,7 +21,7 @@ class SelfJSONEncoder (json.JSONEncoder):
     def default(self, obj):
         if isinstance(obj, datetime.datetime) :
             return obj.isoformat()
-        if hasattr(obj, '__json__') and callable(getattr((obj, '__json__'))) :
+        if hasattr(obj, '__json__') and callable(getattr(obj, '__json__')) :
             return getattr(obj, '__json__')()
         else:
             return super(SelfJSONEncoder, self).default(obj)
