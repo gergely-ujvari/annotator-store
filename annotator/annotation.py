@@ -12,6 +12,7 @@ MAPPING = {
     'quote': {'type': 'string'},
     'tags': {'type': 'string', 'index_name': 'tag'},
     'text': {'type': 'string'},
+    'redacted' : {'type': 'string', 'index': 'not_analyzed'},
     'uri': {'type': 'string', 'index': 'not_analyzed'},
     'user' : {'type': 'string', 'index' : 'not_analyzed'},
     'consumer': {'type': 'string', 'index': 'not_analyzed'},
