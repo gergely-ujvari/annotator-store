@@ -180,8 +180,26 @@ def delete_annotation(id):
     if failure:
         return failure
 
-    annotation.delete()
-    return '', 204
+    if request.json is not None:
+        if "redacted" in request.json:
+            # annotation is redacted, so remove some data            
+            new_user = ""
+
+            # prepare the list of updates
+            updated = dict(redacted=True, text=request.json["text"], user=new_user)
+            updated['id'] = id
+            # do redact update
+            annotation.update(updated)
+            if hasattr(g, 'before_annotation_update'):
+               g.before_annotation_update(annotation)
+
+            refresh = request.args.get('refresh') != 'false'
+            annotation.save(refresh=refresh)
+            return jsonify(annotation) 
+        else:    
+            # this is a normal delete
+            annotation.delete()
+            return '', 204
 
 # SEARCH
 @store.route('/search')
