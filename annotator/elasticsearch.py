@@ -49,6 +49,9 @@ class ElasticSearch(object):
             app.extensions = {}
         app.extensions['elasticsearch'] = self
 
+        if not self.app and app :
+            self.app = app
+
     def get_app(self):
         """
 

@@ -77,6 +77,16 @@ class Annotation(es.Model):
             q['query'] = {'filtered': {'query': q['query'], 'filter': f}}
 
         return q, p
+    
+    @classmethod
+    def search_full(cls, **kwargs):
+        q = super(Annotation, cls)._build_query(limit=1000, **kwargs)
+        if not q:
+            return []
+        res = cls.es.conn.search_raw(q, cls.es.index, cls.__type__)
+        docs = res['hits']['hits']
+        return [cls(d['_source'], id=d['_id']) for d in docs]
+        
 
     def save(self, *args, **kwargs):
         # For brand new annotations
