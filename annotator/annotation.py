@@ -77,6 +77,35 @@ class Annotation(es.Model):
             q['query'] = {'filtered': {'query': q['query'], 'filter': f}}
 
         return q, p
+
+
+    @classmethod
+    def _build_query_auth(cls, user, offset=0, limit=20, **kwargs):                
+        q = super(Annotation, cls)._build_query(offset, limit, **kwargs)
+        if cls.es.app.config.get('AUTHZ_ON'):
+            f = authz.permissions_filter(user)
+            if not f:
+                return False # Refuse to perform the query
+            q['query'] = {'filtered': {'query': q['query'], 'filter': f}}
+
+        return q
+    
+    @classmethod
+    def search_auth(cls, user, **kwargs):
+        q = cls._build_query_auth(user, **kwargs)
+        if not q:
+            return []
+        res = cls.es.conn.search_raw(q, cls.es.index, cls.__type__)
+        docs = res['hits']['hits']
+        return [cls(d['_source'], id=d['_id']) for d in docs]
+
+    @classmethod
+    def fetch_auth(cls, user, id):      
+        if cls.es.app.config.get('AUTHZ_ON'):
+            f = authz.permissions_filter(user)
+            if not f:
+                return None
+            else: return super(Annotation, cls).fetch(id)
     
     @classmethod
     def search_full(cls, **kwargs):
